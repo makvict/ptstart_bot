@@ -64,7 +64,7 @@ def log(update: Update, context):
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     client.connect(hostname=os.getenv('RM_HOST'), username='root', password=os.getenv('RM_PASSWORD'), port=os.getenv('RM_PORT'))
-    stdin, stdout, stderr = client.exec_command('docker logs repl_image --tail 10')
+    stdin, stdout, stderr = client.exec_command('docker logs db_image 2>&1 | grep -i "replication" | tail -n 20')
     data = stdout.read() + stderr.read()
     client.close()
     data = str(data).replace('\\n', '\n').replace('\\t', '\t')[2:-1]

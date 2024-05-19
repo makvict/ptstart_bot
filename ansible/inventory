@@ -1,28 +1,28 @@
 all:
   vars:
-    DB_REPL_USER: repl_user
-    DB_REPL_PASSWORD: 
+    DB_REPL_USER: replicator
+    DB_REPL_PASSWORD: replicator_password
     DB_REPL_PORT: 5433
     POSTGRES_VERSION: 14
-    DB_HOST: 192.168.141.145
+    DB_HOST: 192.168.60.140
     DB_PORT: 5432
-    DB_REPL_HOST: 192.168.141.146
-    GIT: https://github.com/shvetsHoG/PTStart-DevOps.git
-    WORKDIR: /root/ansible
-    TOKEN: 
-    RM_HOST: 192.168.141.145
+    DB_REPL_HOST: 192.168.60.139
+    GIT: https://github.com/makvict/ptstart_bot.git
+    WORKDIR: /home/ubuntu/ansible
+    TOKEN: 7011253439:AAE3gBikcpStmwP_w8oHkq41TnfOALsCFWI
+    RM_HOST: 192.168.60.140
     RM_PORT: 22
     RM_USER: ubuntu
-    RM_PASSWORD: 
+    RM_PASSWORD: ubuntu
     DB_USER: postgres
-    DB_PASSWORD: 
-    DB_DATABASE: bot_db
+    DB_PASSWORD: Qq12345
+    DB_DATABASE: database
   hosts:  
     host1:
-      ansible_host: 192.168.141.145
+      ansible_host: 192.168.60.140
       ansible_user: ansible
-      ansible_ssh_pass: 
+      ansible_ssh_pass: ansible
     host2:
-      ansible_host: 192.168.141.146
+      ansible_host: 192.168.60.140
       ansible_user: ansible    
-      ansible_ssh_pass: 
+      ansible_ssh_pass: ansible

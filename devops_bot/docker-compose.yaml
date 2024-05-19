@@ -16,7 +16,7 @@ services:
     <<: *postgres-common
     container_name: db_image
     build:
-      context: ./db_image
+      context: ./db
       dockerfile: Dockerfile
     ports:
       - ${DB_PORT}
@@ -35,7 +35,7 @@ services:
       -c hot_standby_feedback=on
 
     volumes:
-      - ./db_image/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       Bot-network:
 
@@ -43,7 +43,7 @@ services:
     <<: *postgres-common
     container_name: repl_image
     build:
-      context: ./repl_image
+      context: ./db_repl
       dockerfile: Dockerfile
     ports:
       - ${DB_REPL_PORT}
@@ -64,7 +64,7 @@ services:
       postgres
       "
     depends_on:
-      - db_image
+      - db
     networks:
       Bot-network:
   bot_image:
@@ -72,13 +72,13 @@ services:
     env_file:
       - .env
     build:
-      context: ./bot_image
+      context: ./bot
       dockerfile: Dockerfile
     networks:
       Bot-network:
     depends_on:
-      - db_image
-      - db_repl_image
+      - db
+      - db_repl
 
 networks:
   Bot-network:

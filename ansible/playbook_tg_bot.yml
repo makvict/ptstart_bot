@@ -9,7 +9,6 @@
       - postgresql
       - postgresql-contrib
       - libpq-dev
-      update_cache: yes
 
 - name: actions for bot and db
   hosts: host1

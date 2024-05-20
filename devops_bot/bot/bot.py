@@ -258,7 +258,6 @@ def find_phones(update: Update, context):
         update.message.reply_text(data)
         logging.info("Команда успешно выполнена")
     except (Exception, Error) as error:
-        update.message.reply_text('jopa')
         print('error')
         logging.error("Ошибка при работе с PostgreSQL: %s", error)
     finally:
@@ -275,8 +274,7 @@ def verify_passwordCommand(update: Update, context):
 def verify_password(update: Update, context):
     user_input = update.message.text
 
-    passRegex = re.compile(
-        r'^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*()]).{8,}$')
+    passRegex = re.compile(r'^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*()]).{8,}$')
 
     if re.match(passRegex, user_input):
         update.message.reply_text('Пароль сложный')
@@ -301,7 +299,7 @@ def find_email(update: Update, context: CallbackContext):
 
     if not EmailList:
         update.message.reply_text('Электронные почты не найдены')
-        return
+        return ConversationHandler.END
 
     Email = ''
     for i in range(len(EmailList)):
@@ -387,15 +385,13 @@ def find_phone_number(update: Update, context):
     user_input = update.message.text
 
     # формат 8 (000) 000-00-00
-    phoneNumRegex = re.compile(
-        r'(?:\+7|8)(?:[\- ]?\d{3}){2}[\- ]?\d{2}[\- ]?\d{2}')
+    phoneNumRegex = re.compile(r'(?:\+7|8)\s?(?:\(|-)?\d{3}(?:\)|-)?\s?\d{3}(?:(?:-|\s)?\d{2}){2}')
     global phoneNumberList
-    phoneNumberList = phoneNumRegex.findall(
-        user_input)  # Ищем номера телефонов
+    phoneNumberList = phoneNumRegex.findall(user_input)  # Ищем номера телефонов
 
     if not phoneNumberList:  # Обрабатываем случай, когда номеров телефонов нет
         update.message.reply_text('Телефонные номера не найдены')
-        return  # Завершаем выполнение функции
+        return ConversationHandler.END
 
     phoneNumbers = ''  # Создаем строку, в которую будем записывать номера телефонов
     for i in range(len(phoneNumberList)):

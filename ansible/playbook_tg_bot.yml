@@ -1,10 +1,8 @@
----
-- hosts: all
-  become: true
+- name: Download packages
+  hosts: all
+  become: yes
   tasks:
-  - name: Update apt cache
-      apt: update_cache=yes cache_valid_time=3600
-  - name: Download packages
+  - name: download packages
     apt:
       pkg:
       - git
@@ -13,8 +11,10 @@
       - libpq-dev
       update_cache: yes
 
-- name: db_image and bot_image
+- name: actions for bot and db
   hosts: host1
+  vars_files:
+    - env.yml
   become: yes
   tasks:
   - name: download packages
@@ -22,15 +22,6 @@
       pkg:
       - python3
       - python3-pip
-
-  - name: clone repository
-    git:
-      repo: https://github.com/makvict/ptstart_bot.git
-      dest: home/ubuntu/bot/ansible/ptstart_bot
-
-  - name: install libraries
-    pip:
-      requirements: home/ubuntu/ptstart_bot/bot/requirements.txt"
 
   - name: send init.sql to host
     copy:
@@ -44,43 +35,43 @@
     replace:
       path: /tmp/init.sql
       regexp: "DB_DATABASE"
-      replace: "{{ hostvars[inventory_hostname]['DB_DATABASE'] }}"
+      replace: "{{DB_DATABASE}}"
 
   - name: replace DB_USER name
     replace:
       path: /tmp/init.sql
       regexp: "DB_USER"
-      replace: "{{ hostvars[inventory_hostname]['DB_USER'] }}"
-
+      replace: "{{DB_USER}}"
   - name: replace DB_PASSWORD name
     replace:
       path: /tmp/init.sql
       regexp: "DB_PASSWORD"
-      replace: "{{ hostvars[inventory_hostname]['DB_PASSWORD'] }}"
+      replace: "{{DB_PASSWORD}}"
 
   - name: replace DB_REPL_USER name
     replace:
       path: /tmp/init.sql
       regexp: "DB_REPL_USER"
-      replace: "{{ hostvars[inventory_hostname]['DB_REPL_USER'] }}"
+      replace: "{{DB_REPL_USER}}"
 
   - name: replace DB_REPL_PASSWORD name
     replace:
       path: /tmp/init.sql
       regexp: "DB_REPL_PASSWORD"
-      replace: "{{ hostvars[inventory_hostname]['DB_REPL_PASSWORD'] }}"
+      replace: "{{DB_REPL_PASSWORD}}"
 
   - name: run init.sql
     command: /usr/bin/psql -a -f /tmp/init.sql
     become: true
     become_user: postgres
+    ignore_errors: true
 
   - name: change postgresql.conf
     blockinfile:
-      path: "/etc/postgresql/{{ hostvars[inventory_hostname]['POSTGRES_VERSION'] }}/main/postgresql.conf"
+      path: "/etc/postgresql/{{DB_VERSION}}/main/postgresql.conf"
       block: |
         listen_addresses = '*'
-        port = {{ hostvars[inventory_hostname]['DB_PORT'] }}
+        port = {{DB_PORT}}
         max_wal_senders=10
         wal_level=replica
         hot_standby=on
@@ -90,66 +81,64 @@
 
   - name: change pg_hba.conf
     blockinfile:
-      path: "/etc/postgresql/{{ hostvars[inventory_hostname]['POSTGRES_VERSION'] }}/main/pg_hba.conf"
+      path: "/etc/postgresql/{{DB_VERSION}}/main/pg_hba.conf"
       block: |
         local all postgres peer
         host replication all {{ hostvars[inventory_hostname]['ansible_host'] }}/24 scram-sha-256
         host all all {{ hostvars[inventory_hostname]['ansible_host'] }}/32 trust
 
-  - name: applying changes
+  - name: restarted host1
     service:
       name: postgresql
       state: restarted
 
 - name: Deployment host2
   hosts: host2
+  vars_files:
+    - env.yml
   become: true
   tasks:
-  - name: change postgresql.conf
+  - name: change postgresql.conf host2
     become: true
     become_user: postgres
     blockinfile:
-      path: "/etc/postgresql/{{ hostvars[inventory_hostname]['POSTGRES_VERSION'] }}/main/postgresql.conf"
+      path: "/etc/postgresql/{{DB_VERSION}}/main/postgresql.conf"
       block: |
         listen_addresses = '*'
-        port = {{ hostvars[inventory_hostname]['DB_REPL_PORT'] }}
-
-  - name: remove database data
-    command: rm -rf /var/lib/postgresql/{{ hostvars[inventory_hostname]['POSTGRES_VERSION'] }}/
-
-  - name: do backup from host1
-    command: pg_basebackup -h {{ hostvars[inventory_hostname]['DB_HOST'] }} -D /var/lib/postgresql/{{ hostvars[inventory_hostname]['POSTGRES_VERSION'] }}/main/ -p {{ hostvars[inventory_hostname]['DB_PORT'] }} -U {{ hostvars[inventory_hostname]['DB_REPL_USER'] }}
+        port = {{DB_REPL_PORT}}
+    ignore_errors: true
+  - name: remove data host 2
+    command: rm -rf /var/lib/postgresql/{{DB_VERSION}}/
+    ignore_errors: true
+  - name: replication
+    command: pg_basebackup -h {{DB_HOST}} -D /var/lib/postgresql/{{DB_VERSION}}/main/ -p {{DB_PORT}} -U {{DB_REPL_USER}}
     environment:
-      PGUSER: "{{ hostvars[inventory_hostname]['DB_REPL_USER'] }}"
-      PGPASSWORD: "{{ hostvars[inventory_hostname]['DB_REPL_PASSWORD'] }}"
-
-  - name: change rights
+      PGUSER: "{{DB_REPL_USER}}"
+      PGPASSWORD: "{{DB_REPL_PASSWORD}}"
+    ignore_errors: true
+  - name: chown for host 2
     command: chown -R postgres:postgres /var/lib/postgresql/
-
-  - name: applying slave changes
+    ignore_errors: true
+  - name: restarting host 2
     service:
       name: postgresql
       state: restarted
 
-- name: start project
+- name: start bot
   hosts: host1
+  vars_files:
+    - env.yml
   become: yes
   tasks:
+  - name: gitclone repository
+    git:
+      repo: https://github.com/makvict/ptstart_bot.git
+      dest: "{{WORKDIR}}/bot"
+
+  - name: install libraries
+    pip:
+      requirements: "{{WORKDIR}}/bot/requirements.txt"
+  - name: copy env
+    command: cp /root/ansible/env /root/ansible/bot/.env
   - name: start bot
-    command: python3 "{{ hostvars[inventory_hostname]['WORKDIR'] }}/bot/main.py"
-    environment:
-      HOST: "{{ hostvars[inventory_hostname]['RM_HOST'] }}"
-      POSTGRES_HOST: "{{ hostvars[inventory_hostname]['RM_HOST'] }}"
-      REPL_HOST: "{{ hostvars[inventory_hostname]['DB_REPL_HOST'] }}"
-      PORT: "{{ hostvars[inventory_hostname]['RM_PORT'] }}"
-      USER: "{{ hostvars[inventory_hostname]['RM_USER'] }}"
-      POSTGRES_DB: "{{ hostvars[inventory_hostname]['DB_DATABASE'] }}"
-      POSTGRES_USER: "{{ hostvars[inventory_hostname]['DB_USER'] }}"
-      POSTGRES_PASSWORD: "{{ hostvars[inventory_hostname]['DB_PASSWORD'] }}"
-      POSTGRES_PORT: "{{ hostvars[inventory_hostname]['DB_PORT'] }}"
-      POSTGRES_REPL_USER: "{{ hostvars[inventory_hostname]['DB_REPL_USER'] }}"
-      POSTGRES_REPL_PASSWORD: "{{ hostvars[inventory_hostname]['DB_REPL_PASSWORD'] }}"
-      POSTGRES_VERSION: "{{ hostvars[inventory_hostname]['POSTGRES_VERSION'] }}"
-      PASSWORD: "{{ hostvars[inventory_hostname]['RM_PASSWORD'] }}"
-      ROOT_PASSWORD: "{{ hostvars[inventory_hostname]['RM_PASSWORD'] }}"
-      TOKEN: "{{ hostvars[inventory_hostname]['TOKEN'] }}"
+    command: python3 "{{WORKDIR}}/bot/bot.py"

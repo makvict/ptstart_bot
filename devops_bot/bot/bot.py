@@ -41,7 +41,7 @@ commands_dict = {
 }
 
 
-TOKEN = '7011253439:AAE3gBikcpStmwP_w8oHkq41TnfOALsCFWI'
+TOKEN = os.getenv('TOKEN')
 
 
 def command(update: Update, context):
@@ -63,7 +63,7 @@ def log(update: Update, context):
 
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    client.connect(hostname=os.getenv('RM_HOST'), username='root', password=os.getenv('RM_PASSWORD'), port=os.getenv('RM_PORT'))
+    client.connect(hostname=os.getenv('RM_HOST'), username=os.getenv('RM_USER'), password=os.getenv('RM_PASSWORD'), port=os.getenv('RM_PORT'))
     stdin, stdout, stderr = client.exec_command('docker logs db_image 2>&1 | grep -i "replication" | tail -n 20')
     data = stdout.read() + stderr.read()
     client.close()

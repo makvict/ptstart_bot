@@ -301,7 +301,7 @@ def find_email(update: Update, context: CallbackContext):
 
     if not EmailList:
         update.message.reply_text('Электронные почты не найдены')
-        return
+        return ConversationHandler.END
 
     Email = ''
     for i in range(len(EmailList)):
@@ -388,7 +388,7 @@ def find_phone_number(update: Update, context):
 
     # формат 8 (000) 000-00-00
     phoneNumRegex = re.compile(
-        r'(?:\+7|8)(?:[\- ]?\d{3}){2}[\- ]?\d{2}[\- ]?\d{2}')
+        r'(?:\+7|8)\s?(?:\(|-)?\d{3}(?:\)|-)?\s?\d{3}(?:(?:-|\s)?\d{2}){2}')
     global phoneNumberList
     phoneNumberList = phoneNumRegex.findall(
         user_input)  # Ищем номера телефонов

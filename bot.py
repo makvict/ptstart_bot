@@ -258,7 +258,7 @@ def find_phones(update: Update, context):
         update.message.reply_text(data)
         logging.info("Команда успешно выполнена")
     except (Exception, Error) as error:
-        update.message.reply_text('jopa')
+        
         print('error')
         logging.error("Ошибка при работе с PostgreSQL: %s", error)
     finally:
@@ -334,7 +334,7 @@ def response(update: Update, context: CallbackContext):
             cursor = connection.cursor()
             connection.autocommit = True
             for i in EmailList:
-                print(i)
+                
                 cursor.execute("INSERT INTO emails(email) VALUES (%s);", (i,))
 
             logging.info("Команда успешно выполнена")
@@ -358,7 +358,7 @@ def response(update: Update, context: CallbackContext):
             cursor = connection.cursor()
             connection.autocommit = True
             for i in phoneNumberList:
-                print(i)
+                
                 cursor.execute("INSERT INTO phones(phone) VALUES (%s);", (i,))
 
             logging.info("Команда успешно выполнена")
@@ -390,8 +390,7 @@ def find_phone_number(update: Update, context):
     phoneNumRegex = re.compile(
         r'(?:\+7|8)\s?(?:\(|-)?\d{3}(?:\)|-)?\s?\d{3}(?:(?:-|\s)?\d{2}){2}')
     global phoneNumberList
-    phoneNumberList = phoneNumRegex.findall(
-        user_input)  # Ищем номера телефонов
+    phoneNumberList = phoneNumRegex.findall(user_input)  # Ищем номера телефонов
 
     if not phoneNumberList:  # Обрабатываем случай, когда номеров телефонов нет
         update.message.reply_text('Телефонные номера не найдены')
